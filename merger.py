@@ -2,11 +2,12 @@
 
 import getopt, sys
 import os.path
+import subprocess
 
 from_dir = ""
 to_dir = ""
 
-def checkParameters():
+def check_parameters():
 	global from_dir
 	global to_dir
 	fullCmdArguments = sys.argv
@@ -36,24 +37,46 @@ def checkParameters():
 		if not os.path.exists(to_dir):
 			print (("target folder does not exist! (%s)")%(to_dir))
 			sys.exit(2)
+		from_dir = os.path.abspath(from_dir)
+		to_dir = os.path.abspath(to_dir)
 
 	except getopt.error as err:
 		print(str(err))
 		sys.exit(2)
 
+def get_relative_path(base_dir, target_dir):
+	# print '[get_relative_path]base_dir:', base_dir
+	# print '[get_relative_path]target_dir: ', target_dir
+	common_prefix = os.path.commonprefix([base_dir, target_dir])
+	rel_path = os.path.relpath(target_dir, common_prefix)
+	return rel_path
+
+def copy_file(src, target):
+	try:
+		subprocess.check_call(["lk", "-l"])
+	except subprocess.CalledProcessError as e:
+		print 'ERRRRRR', e.returncode, e.cmd, e.output
+
 def iterate_files():
 	for dirName, subdirList, fileList in os.walk(from_dir):
+		if len(fileList) == 0:  
+			continue
 		print('Found directory: %s' % dirName)
-    	for fname in fileList:
-        	print('\t%s' % fname)
+		# TODO create target directory if needed
+		
+		for fname in fileList:
+			print('\t%s' % get_relative_path(from_dir, dirName + os.path.sep + fname))
+
+
 
 ########################################
 ########################################
 ########################################
 
-checkParameters()
-iterate_files()
+check_parameters()
+#iterate_files()
+copy_file('a', 'b')
 
-print from_dir
-print to_dir
+print 'from_dir: ', from_dir
+print 'to_dir: ', to_dir
 print "DONE!"
