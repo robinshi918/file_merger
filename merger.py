@@ -6,9 +6,6 @@ import os.path
 from_dir = ""
 to_dir = ""
 
-def file_exist(file_path):
-	return os.path.exists(file_path)
-
 def checkParameters():
 	global from_dir
 	global to_dir
@@ -33,10 +30,10 @@ def checkParameters():
 				to_dir = currentValue
 		
 		# check folder existence
-		if not file_exist(from_dir):
+		if not os.path.exists(from_dir):
 			print (("source folder does not exist! (%s)")%(from_dir))
 			sys.exit(2)
-		if not file_exist(to_dir):
+		if not os.path.exists(to_dir):
 			print (("target folder does not exist! (%s)")%(to_dir))
 			sys.exit(2)
 
@@ -44,13 +41,19 @@ def checkParameters():
 		print(str(err))
 		sys.exit(2)
 
-########################################
-########################################
-########################################
+def iterate_files():
+	for dirName, subdirList, fileList in os.walk(from_dir):
+		print('Found directory: %s' % dirName)
+    	for fname in fileList:
+        	print('\t%s' % fname)
 
-
+########################################
+########################################
+########################################
 
 checkParameters()
+iterate_files()
+
 print from_dir
 print to_dir
 print "DONE!"
