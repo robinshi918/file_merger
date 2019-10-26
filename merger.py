@@ -6,6 +6,7 @@ import subprocess
 
 from_dir = ""
 to_dir = ""
+has_failure = False
 
 def check_parameters():
 	global from_dir
@@ -21,7 +22,7 @@ def check_parameters():
 	gnuOptions = ["from=", "to="]
 
 	try:
-		arguments, values = getopt.getopt(argumentList, unixOptions, gnuOptions)\
+		arguments, values = getopt.getopt(argumentList, unixOptions, gnuOptions)
 		
 		# get values from command parameter	
 		for currentArgument, currentValue in arguments:
@@ -52,31 +53,46 @@ def get_relative_path(base_dir, target_dir):
 	return rel_path
 
 def copy_file(src, target):
+	global has_failure
 	try:
-		subprocess.check_call(["lk", "-l"])
-	except subprocess.CalledProcessError as e:
-		print 'ERRRRRR', e.returncode, e.cmd, e.output
+		subprocess.check_call(["cp", src, target])
+		# print 'cp', src , '->', target
+	except:
+		print 'Copy Failure!', src, '->', target
+		has_failure = True
+
+
+def create_folder_is_not_exist(path):
+	if not os.path.exists(path):
+		os.makedirs(path)
 
 def iterate_files():
 	for dirName, subdirList, fileList in os.walk(from_dir):
 		if len(fileList) == 0:  
 			continue
-		print('Found directory: %s' % dirName)
-		# TODO create target directory if needed
 		
+		relative_target_folder = get_relative_path(from_dir, dirName)
+		# print('Found relative_target_folder: %s' % relative_target_folder)
+		# print('Found absolute directory: %s' % dirName)
+		# TODO create target directory if needed
+		create_folder_is_not_exist(os.path.join(to_dir, relative_target_folder))
+
 		for fname in fileList:
-			print('\t%s' % get_relative_path(from_dir, dirName + os.path.sep + fname))
+			# print('\t%s' % get_relative_path(from_dir, os.path.join(dirName, fname)))
+			absolute_src_file = os.path.join(dirName, fname)
+			relative_src_file = get_relative_path(from_dir, absolute_src_file)
 
-
+			# print('\t%s' % relative_src_file)
+			absolute_target_file = os.path.join(to_dir, relative_src_file)
+			copy_file(absolute_src_file, absolute_target_file)
 
 ########################################
 ########################################
 ########################################
 
 check_parameters()
-#iterate_files()
-copy_file('a', 'b')
-
-print 'from_dir: ', from_dir
-print 'to_dir: ', to_dir
-print "DONE!"
+iterate_files()
+if has_failure:
+	print "DONE! Failure exists!"
+else:
+	print "DONE! No Failure"
