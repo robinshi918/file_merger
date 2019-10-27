@@ -4,11 +4,14 @@ import getopt, sys
 import os.path
 import subprocess
 import time
+import ntpath
 
 # global variables
 from_dir = ""
 to_dir = ""
 has_failure = False
+
+num_of_src_files = 0  # total number of files in source folder
 
 # total
 total_size_of_files = 0
@@ -65,9 +68,9 @@ def check_parameters():
 		if not os.path.exists(from_dir):
 			print (("source folder does not exist! (%s)")%(from_dir))
 			sys.exit(2)
-		if not os.path.exists(to_dir):
-			print (("target folder does not exist! (%s)")%(to_dir))
-			sys.exit(2)
+		# if not os.path.exists(to_dir):
+		# 	print (("target folder does not exist! (%s)")%(to_dir))
+		# 	sys.exit(2)
 		from_dir = os.path.abspath(from_dir)
 		to_dir = os.path.abspath(to_dir)
 
@@ -76,45 +79,52 @@ def check_parameters():
 		sys.exit(2)
 
 def get_relative_path(base_dir, target_dir):
-	# print '[get_relative_path]base_dir:', base_dir
-	# print '[get_relative_path]target_dir: ', target_dir
 	common_prefix = os.path.commonprefix([base_dir, target_dir])
 	rel_path = os.path.relpath(target_dir, common_prefix)
 	return rel_path
 
-string_on_screen = ""
 def copy_file(src, target):
 	global total_num_of_files
 	global total_num_of_failure
 	global total_size_of_files
 	global total_num_of_copied_files
 	global total_size_of_copied_files
-	global string_on_screen
-	
-	try:
-		# clear previous string from screen
-		back_str = '\b'*len(string_on_screen)
-		# print string_on_screen
-		sys.stdout.write(back_str)
-		
+	global num_of_src_files
 
+# Status, CurSize, CopiedFiles, CopiedSize,  ProcessedFiles, ProcessedSize, Failures, TotalFiles, CurFileName
+
+	try:
 		total_num_of_files += 1
 		file_size = os.path.getsize(src)
 		total_size_of_files += file_size
-		string_on_screen = "Verifying [files: {} ] [size: {}]\t{}\r".format(total_num_of_files, sizeof_fmt(total_size_of_files), src)
+		# string_on_screen = "\rChk\t{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}\t\t{}".format(
+		# 	sizeof_fmt(file_size), #curSize
+		# 	total_num_of_copied_files,  # copied files
+		# 	sizeof_fmt(total_size_of_copied_files),  #CopiedSize
+		# 	total_num_of_files, # processed files
+		# 	sizeof_fmt(total_size_of_files), # size of processed files
+		# 	total_num_of_failure,  # num of failures
+		# 	num_of_src_files, # number of total file src files
+		# 	ntpath.basename(src)  # file name
+		# 	)
+		string_on_screen = "\rVerifying [files: {}/{} ] [size: {}]\t{}".format(
+			total_num_of_files,
+		 	num_of_src_files, 
+		 	sizeof_fmt(total_size_of_files), src)
 		sys.stdout.write(string_on_screen)
 		sys.stdout.flush()
-		
 		if file_is_exist(src, target):
 			return
 
 		subprocess.check_call(["cp", src, target])
 		total_num_of_copied_files += 1
 		total_size_of_copied_files += file_size
-		string_on_screen = "Copying [files: {} ] [size: {}]\t{}\r".format(total_num_of_copied_files, sizeof_fmt(total_size_of_copied_files), src)
+		string_on_screen = "\rCopying [files: {}/{}] [size: {}]\t{}".format(
+			total_num_of_copied_files, 
+			num_of_src_files, 
+			sizeof_fmt(total_size_of_copied_files), src)
 		sys.stdout.write(string_on_screen)
 		sys.stdout.flush()
-
 	except Exception as e:
 		print 'Error!', src, '->', target
 		print e.message
@@ -134,6 +144,7 @@ def sizeof_fmt(num, suffix='B'):
 
 def iterate_files():
 	print "Starting Copy!"
+	# print "Status\tCurSize\t\tCopiedFiles\tCopiedSize\tProcessedFiles\tProcessedSize\tFailures\tTotalFiles\tCurFileName"
 	for dirName, subdirList, fileList in os.walk(from_dir):
 		if len(fileList) == 0:  
 			continue
@@ -148,8 +159,19 @@ def iterate_files():
 			absolute_target_file = os.path.join(to_dir, relative_src_file)
 			copy_file(absolute_src_file, absolute_target_file)
 
+def pre_scan_src_folder():
+	global num_of_src_files
+	print "Preparing.....!",
+	for dirName, subdirList, fileList in os.walk(from_dir):
+		if len(fileList) == 0:  
+			continue
+		for fname in fileList:
+			num_of_src_files += 1
+	print "Done. {} files!".format(num_of_src_files)
+
 start_time = time.time()
 check_parameters()
+pre_scan_src_folder()
 iterate_files()
 
 print "\n\n=========== MISSION COMPLETE ==========="
