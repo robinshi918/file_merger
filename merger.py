@@ -3,10 +3,30 @@
 import getopt, sys
 import os.path
 import subprocess
+import time
 
 from_dir = ""
 to_dir = ""
 has_failure = False
+total_file_size = 0
+total_num_of_files = 0
+total_num_of_failure = 0
+
+'''
+Check if target file already exist.
+Return True if target file already exist and has same content with src file.
+Otherwise return False
+'''
+def file_is_exist(src, dst):
+	if os.path.exists(dst):
+		try:
+			src_checksum = subprocess.check_output(["/sbin/md5", "-q", src])
+			dst_checksum = subprocess.check_output(["/sbin/md5", "-q", dst])
+			if src_checksum == dst_checksum:
+				return True
+		except Exception as e:
+			return False
+	return False
 
 def check_parameters():
 	global from_dir
@@ -54,19 +74,34 @@ def get_relative_path(base_dir, target_dir):
 
 def copy_file(src, target):
 	global has_failure
+	global total_num_of_files
+	global total_file_size
 	try:
+		if file_is_exist(src, target):
+			return
 		subprocess.check_call(["cp", src, target])
-		# print 'cp', src , '->', target
-	except:
+		total_num_of_files += 1
+		total_file_size += os.path.getsize(src)
+		sys.stdout.write("Copying [files: {} ] [size: {}]\r".format(total_num_of_files, sizeof_fmt(total_file_size)))
+		sys.stdout.flush()
+	except Exception as e:
 		print 'Copy Failure!', src, '->', target
 		has_failure = True
-
+		total_num_of_failure += 1
 
 def create_folder_is_not_exist(path):
 	if not os.path.exists(path):
 		os.makedirs(path)
 
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['','K','M','G','T','P','E','Z']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
 def iterate_files():
+	print "Starting Copy!"
 	for dirName, subdirList, fileList in os.walk(from_dir):
 		if len(fileList) == 0:  
 			continue
@@ -89,10 +124,13 @@ def iterate_files():
 ########################################
 ########################################
 ########################################
-
+start_time = time.time()
 check_parameters()
 iterate_files()
 if has_failure:
 	print "DONE! Failure exists!"
 else:
-	print "DONE! No Failure"
+	print "\nDONE! Succes! ==> {} files copied! [{}]".format(total_num_of_files, sizeof_fmt(total_file_size))
+print time.strftime("Time elapsed: %H:%M:%S", time.gmtime(time.time() - start_time))
+
+
