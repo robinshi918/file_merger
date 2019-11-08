@@ -22,6 +22,9 @@ total_num_of_failure = 0
 total_num_of_copied_files = 0
 total_size_of_copied_files = 0
 
+def show_usage():
+	print "./merger.py -f SOURCE_PATH -t TARGET_PATH"
+	print "./merger.py --from SOURCE_PATH --to TARGET_PATH"
 '''
 Check if target file already exist.
 Return True if target file already exist and has same content with src file.
@@ -49,6 +52,7 @@ def check_parameters():
 	argumentList = fullCmdArguments[1:]
 	if len(argumentList) != 4:
 		print "IllegalArgument"
+		show_usage()
 		sys.exit(2)
 
 	unixOptions = "f:t:"
